@@ -1,0 +1,39 @@
+{
+	"name": "Weekly",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "FilePreValidationxls",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"InputFile": "SampleData_ColumnSequence.xlsx"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2020-07-02T10:28:00Z",
+				"endTime": "2020-07-30T10:28:00Z",
+				"timeZone": "UTC",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						11
+					],
+					"weekDays": [
+						"Thursday"
+					]
+				}
+			}
+		}
+	}
+}

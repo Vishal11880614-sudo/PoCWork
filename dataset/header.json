@@ -1,0 +1,19 @@
+{
+	"name": "header",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "headercnt.json",
+				"container": "pocsink"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

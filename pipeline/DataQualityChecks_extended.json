@@ -1,0 +1,244 @@
+{
+	"name": "DataQualityChecks_extended",
+	"properties": {
+		"activities": [
+			{
+				"name": "CopydataExceltoJson",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ExcelSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings",
+							"quoteAllText": true
+						}
+					},
+					"enableStaging": false,
+					"enableSkipIncompatibleRow": true,
+					"logStorageSettings": {
+						"linkedServiceName": {
+							"referenceName": "AzureBlobStorage1",
+							"type": "LinkedServiceReference"
+						},
+						"path": "adflogs"
+					},
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "OrderDate",
+									"type": "String"
+								},
+								"sink": {
+									"path": "$['OrderDate']"
+								}
+							},
+							{
+								"source": {
+									"name": "Region",
+									"type": "String"
+								},
+								"sink": {
+									"path": "$['Region']"
+								}
+							},
+							{
+								"source": {
+									"name": "Rep",
+									"type": "String"
+								},
+								"sink": {
+									"path": "$['Rep']"
+								}
+							},
+							{
+								"source": {
+									"name": "Item",
+									"type": "String"
+								},
+								"sink": {
+									"path": "$['Item']"
+								}
+							},
+							{
+								"source": {
+									"name": "Units",
+									"type": "Int32"
+								},
+								"sink": {
+									"path": "$['Units']"
+								}
+							},
+							{
+								"source": {
+									"name": "Unit Cost",
+									"type": "Double"
+								},
+								"sink": {
+									"path": "$['Unit Cost']"
+								}
+							},
+							{
+								"source": {
+									"name": "Total",
+									"type": "Double"
+								},
+								"sink": {
+									"path": "$['Total']"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SampleInputdata_param",
+						"type": "DatasetReference",
+						"parameters": {
+							"Inputfilename": {
+								"value": "@pipeline().parameters.Inputfile",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "Validataoutput",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "ErrorLogProcedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CopydataExceltoJson",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[SP_ExecutionLogs]",
+					"storedProcedureParameters": {
+						"CreatedOn": {
+							"value": {
+								"value": "@utcnow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"DataFactoryName": {
+							"value": {
+								"value": "@pipeline().DataFactory",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ErrorMessage": {
+							"value": {
+								"value": "@if(greaterOrEquals(activity('CopydataExceltoJson').output.rowsSkipped,1),'File has erroneous records' ,'File is valid')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Filename": {
+							"value": {
+								"value": "@pipeline().parameters.Inputfile",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"LogFilePath": {
+							"value": {
+								"value": "@activity('CopydataExceltoJson').output.logFilePath",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@activity('CopydataExceltoJson').output.rowsRead",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"RowsSkipped": {
+							"value": {
+								"value": "@activity('CopydataExceltoJson').output.rowsSkipped",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"runid": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ValidRows": {
+							"value": {
+								"value": "@activity('CopydataExceltoJson').output.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "linkedService1",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"Inputfile": {
+				"type": "string",
+				"defaultValue": "SampleData.xlsx"
+			}
+		},
+		"folder": {
+			"name": "Archive"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

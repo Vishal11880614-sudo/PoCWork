@@ -1,0 +1,100 @@
+{
+	"name": "adbexecptions",
+	"properties": {
+		"activities": [
+			{
+				"name": "Transformation",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Shared/writeafile",
+					"baseParameters": {
+						"dfname": {
+							"value": "@pipeline().DataFactory",
+							"type": "Expression"
+						},
+						"pplname": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"Infilename": {
+							"value": "@pipeline().parameters.Inputfilename",
+							"type": "Expression"
+						},
+						"RunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "adbacnpremium",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Transformationupdates",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Transformation",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "TransformStatus",
+						"type": "DatasetReference",
+						"parameters": {
+							"transoutfilenameds": {
+								"value": "@concat(pipeline().RunId,'.csv')",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"parameters": {
+			"Inputfilename": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"transoutfilename": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

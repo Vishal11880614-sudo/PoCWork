@@ -1,0 +1,54 @@
+{
+	"name": "ExecutionLogDetails",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQLDBProcedureLinkService",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "logid",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "LogTimestamp",
+				"type": "varchar"
+			},
+			{
+				"name": "Level",
+				"type": "varchar"
+			},
+			{
+				"name": "OperationName",
+				"type": "varchar"
+			},
+			{
+				"name": "OperationItem",
+				"type": "varchar"
+			},
+			{
+				"name": "ErrorMessage",
+				"type": "varchar"
+			},
+			{
+				"name": "CreatedOn",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "ExecutionLogDetails"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

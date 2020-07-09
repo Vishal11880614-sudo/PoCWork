@@ -1,0 +1,65 @@
+{
+	"name": "ExecutionLogs",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "linkedService1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "DataFactoryName",
+				"type": "varchar"
+			},
+			{
+				"name": "PipelineName",
+				"type": "varchar"
+			},
+			{
+				"name": "Filename",
+				"type": "varchar"
+			},
+			{
+				"name": "RunId",
+				"type": "varchar"
+			},
+			{
+				"name": "RowsRead",
+				"type": "varchar"
+			},
+			{
+				"name": "ValidRows",
+				"type": "varchar"
+			},
+			{
+				"name": "RowsSkipped",
+				"type": "varchar"
+			},
+			{
+				"name": "LogFilePath",
+				"type": "varchar"
+			},
+			{
+				"name": "ErrorMessage",
+				"type": "varchar"
+			},
+			{
+				"name": "CreatedOn",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "ExecutionLogs"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

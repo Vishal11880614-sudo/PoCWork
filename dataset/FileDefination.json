@@ -1,0 +1,22 @@
+{
+	"name": "FileDefination",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Excel",
+		"typeProperties": {
+			"sheetName": "SampleData_GoodFile.xlsx",
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "SampleData_GoodFile.xlsx",
+				"container": "filedefination"
+			},
+			"firstRowAsHeader": true
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

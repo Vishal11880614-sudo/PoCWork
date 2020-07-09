@@ -1,0 +1,45 @@
+{
+	"name": "Validataoutput",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "Sampledata.json",
+				"container": "pocsink"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"OrderDate": {
+					"type": "string"
+				},
+				"Region": {
+					"type": "string"
+				},
+				"Rep": {
+					"type": "string"
+				},
+				"Item": {
+					"type": "string"
+				},
+				"Units": {
+					"type": "integer"
+				},
+				"Unit Cost": {
+					"type": "number"
+				},
+				"Total": {
+					"type": "number"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,41 @@
+{
+	"name": "DelimitedText1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "271fa88e-8124-40c7-8f6f-c33357d0177b.csv",
+				"container": "mynewcontainer"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "DatafactoryName",
+				"type": "String"
+			},
+			{
+				"name": "Pipelinename",
+				"type": "String"
+			},
+			{
+				"name": "Runid",
+				"type": "String"
+			},
+			{
+				"name": "ErrorMessage",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

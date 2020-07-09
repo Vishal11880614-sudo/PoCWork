@@ -1,0 +1,36 @@
+{
+	"name": "File_Defination",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "linkedService1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Object_Name",
+				"type": "varchar"
+			},
+			{
+				"name": "File_Columns",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Schema_Text",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "File_Defination"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

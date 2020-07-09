@@ -1,0 +1,49 @@
+{
+	"name": "TransformStatus",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "myfristresourrcelink",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"transoutfilenameds": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@dataset().transoutfilenameds",
+					"type": "Expression"
+				},
+				"container": "mynewcontainer"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "DatafactoryName",
+				"type": "String"
+			},
+			{
+				"name": "Pipelinename",
+				"type": "String"
+			},
+			{
+				"name": "Runid",
+				"type": "String"
+			},
+			{
+				"name": "ErrorMessage",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
