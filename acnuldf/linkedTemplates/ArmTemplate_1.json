@@ -1,0 +1,1902 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "acnuldf"
+		},
+		"Daily_properties_adbexecptions_parameters_Inputfilename": {
+			"type": "string",
+			"defaultValue": "ProfitOUT.csv"
+		},
+		"Weekly_properties_FilePreValidationxls_parameters_InputFile": {
+			"type": "string",
+			"defaultValue": "SampleData_ColumnSequence.xlsx"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/FilePreValidationcsv')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Source File Metadata",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "csvinputdata",
+								"type": "DatasetReference",
+								"parameters": {
+									"getinput": {
+										"value": "@pipeline().parameters.InputFile",
+										"type": "Expression"
+									}
+								}
+							},
+							"fieldList": [
+								"itemName",
+								"columnCount",
+								"structure"
+							],
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "Lookup File Defination",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select * from [dbo].[File_Defination]\nwhere id = 2",
+								"queryTimeout": "02:00:00"
+							},
+							"dataset": {
+								"referenceName": "File_Defination",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check File Hearder Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Source File Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Lookup File Defination",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Source File Metadata').output.columnCount,json(string(activity('Lookup File Defination').output.firstRow.File_Columns)))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "ErrorLogProcedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "vheadercnt_false",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SP_ExecutionLogs]",
+										"storedProcedureParameters": {
+											"CreatedOn": {
+												"value": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"DataFactoryName": {
+												"value": {
+													"value": "@pipeline().DataFactory",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMessage": {
+												"value": {
+													"value": "@if(equals(variables('vcount'),1),'File is valid','File does not have expected No.Of. Columns')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Filename": {
+												"value": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LogFilePath": {
+												"value": {
+													"value": "'NA'",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsRead": {
+												"value": {
+													"value": "'NA'",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsSkipped": {
+												"value": {
+													"value": "'NA'",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"runid": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ValidRows": {
+												"value": {
+													"value": "'NA'",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "linkedService1",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "vheadercnt_false",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vcount",
+										"value": "'2'"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Wait_No_of_Column",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "vheadercnt",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Wait_No_of_Column",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vcount",
+										"value": "'1'"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Check File Headers",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Source File Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Lookup File Defination",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Source File Metadata').output.structure,json(string(activity('Lookup File Defination').output.firstRow.Schema_Text)))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "ErrorLogProcedure_cols",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "vfileheader_false",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SP_ExecutionLogs]",
+										"storedProcedureParameters": {
+											"CreatedOn": {
+												"value": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"DataFactoryName": {
+												"value": {
+													"value": "@pipeline().DataFactory",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMessage": {
+												"value": {
+													"value": "@if(equals(variables('vheader'),1),'File is valid','Column names and Column Sequence does not match with the predefined metadata.')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Filename": {
+												"value": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LogFilePath": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsRead": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"RowsSkipped": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"runid": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ValidRows": {
+												"value": "'NA'",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "linkedService1",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "vfileheader_false",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vheader",
+										"value": "'3'"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Wait Column Sequence Check",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "vfileheader",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Wait Column Sequence Check",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vheader",
+										"value": "'1'"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Check File Name",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Source File Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Lookup File Defination",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Source File Metadata').output.itemName,activity('Lookup File Defination').output.firstRow.Object_Name)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "ErrorLogProcedure_filename",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "vfilename_false",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SP_ExecutionLogs]",
+										"storedProcedureParameters": {
+											"CreatedOn": {
+												"value": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"DataFactoryName": {
+												"value": {
+													"value": "@pipeline().DataFactory",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMessage": {
+												"value": {
+													"value": "@if(equals(variables('vfilename'),1),'File is valid','File Name does not match with the predefined metadata.')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Filename": {
+												"value": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LogFilePath": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsRead": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"RowsSkipped": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"runid": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ValidRows": {
+												"value": "'NA'",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "linkedService1",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "vfilename_false",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vfilename",
+										"value": "'4'"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Check FileName",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "vfilename",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Check FileName",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vfilename",
+										"value": "'1'"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "If Condition1",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Check File Hearder Count",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Check File Headers",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Check File Name",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@and(equals(variables('vcount'),variables('vfilename')),equals(variables('vfilename'),variables('vheader')))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Wait_False",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Final_Wait",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "CopydatacsvtoJson",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Final_Wait",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "JsonSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "JsonWriteSettings",
+												"quoteAllText": true
+											}
+										},
+										"enableStaging": false,
+										"enableSkipIncompatibleRow": true,
+										"logStorageSettings": {
+											"linkedServiceName": {
+												"referenceName": "AzureBlobStorage1",
+												"type": "LinkedServiceReference"
+											},
+											"path": "adflogs"
+										},
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "OrderDate",
+														"type": "String"
+													},
+													"sink": {
+														"path": "$['OrderDate']"
+													}
+												},
+												{
+													"source": {
+														"name": "Region",
+														"type": "String"
+													},
+													"sink": {
+														"path": "$['Region']"
+													}
+												},
+												{
+													"source": {
+														"name": "Rep",
+														"type": "String"
+													},
+													"sink": {
+														"path": "$['Rep']"
+													}
+												},
+												{
+													"source": {
+														"name": "Item",
+														"type": "String"
+													},
+													"sink": {
+														"path": "$['Item']"
+													}
+												},
+												{
+													"source": {
+														"name": "Units",
+														"type": "Int32"
+													},
+													"sink": {
+														"path": "$['Units']"
+													}
+												},
+												{
+													"source": {
+														"name": "Unit Cost",
+														"type": "Double"
+													},
+													"sink": {
+														"path": "$['Unit Cost']"
+													}
+												},
+												{
+													"source": {
+														"name": "Total",
+														"type": "Double"
+													},
+													"sink": {
+														"path": "$['Total']"
+													}
+												}
+											]
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "csvinputdata",
+											"type": "DatasetReference",
+											"parameters": {
+												"getinput": {
+													"value": "@pipeline().parameters.InputFile",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Validataoutput",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "CallErrorLogProcedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "CopydatacsvtoJson",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SP_ExecutionLogs]",
+										"storedProcedureParameters": {
+											"CreatedOn": {
+												"value": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"DataFactoryName": {
+												"value": {
+													"value": "@pipeline().DataFactory",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMessage": {
+												"value": {
+													"value": "@if(greaterOrEquals(activity('CopydatacsvtoJson').output.rowsSkipped,1),'File has erroneous records' ,'File is valid')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Filename": {
+												"value": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LogFilePath": {
+												"value": {
+													"value": "@activity('CopydatacsvtoJson').output.logFilePath",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsRead": {
+												"value": {
+													"value": "@activity('CopydatacsvtoJson').output.rowsRead",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsSkipped": {
+												"value": {
+													"value": "@activity('CopydatacsvtoJson').output.rowsSkipped",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"runid": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ValidRows": {
+												"value": {
+													"value": "@activity('CopydatacsvtoJson').output.rowsCopied",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "linkedService1",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"parameters": {
+					"InputFile": {
+						"type": "string",
+						"defaultValue": "SampleCSVData_GoodFile.csv"
+					}
+				},
+				"variables": {
+					"vheader": {
+						"type": "String"
+					},
+					"vcount": {
+						"type": "String"
+					},
+					"vfilename": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/FilePreValidationxls')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Source File Metadata",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "SampleInputdata_param",
+								"type": "DatasetReference",
+								"parameters": {
+									"Inputfilename": {
+										"value": "@pipeline().parameters.InputFile",
+										"type": "Expression"
+									}
+								}
+							},
+							"fieldList": [
+								"columnCount",
+								"contentMD5",
+								"itemName",
+								"structure"
+							],
+							"storeSettings": {
+								"type": "AzureBlobStorageReadSettings",
+								"recursive": true
+							}
+						}
+					},
+					{
+						"name": "Lookup File Defination",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select * from [dbo].[File_Defination]\nwhere id = 1",
+								"queryTimeout": "02:00:00"
+							},
+							"dataset": {
+								"referenceName": "File_Defination",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Check File Hearder Count",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Source File Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Lookup File Defination",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Source File Metadata').output.columnCount,json(string(activity('Lookup File Defination').output.firstRow.File_Columns)))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "ErrorLogProcedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "vheadercnt_false",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SP_ExecutionLogs]",
+										"storedProcedureParameters": {
+											"CreatedOn": {
+												"value": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"DataFactoryName": {
+												"value": {
+													"value": "@pipeline().DataFactory",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMessage": {
+												"value": {
+													"value": "@if(equals(variables('vcount'),1),'File is valid','File does not have expected No.Of. Columns')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Filename": {
+												"value": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LogFilePath": {
+												"value": {
+													"value": "'NA'",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsRead": {
+												"value": {
+													"value": "'NA'",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsSkipped": {
+												"value": {
+													"value": "'NA'",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"runid": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ValidRows": {
+												"value": {
+													"value": "'NA'",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "linkedService1",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "vheadercnt_false",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vcount",
+										"value": "'2'"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Wait_No_of_Column",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "vheadercnt",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Wait_No_of_Column",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vcount",
+										"value": "'1'"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Check File Headers",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Source File Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Lookup File Defination",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Source File Metadata').output.structure,json(string(activity('Lookup File Defination').output.firstRow.Schema_Text)))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "ErrorLogProcedure_cols",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "vfileheader_false",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SP_ExecutionLogs]",
+										"storedProcedureParameters": {
+											"CreatedOn": {
+												"value": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"DataFactoryName": {
+												"value": {
+													"value": "@pipeline().DataFactory",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMessage": {
+												"value": {
+													"value": "@if(equals(variables('vheader'),1),'File is valid','Column names and Column Sequence does not match with the predefined metadata.')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Filename": {
+												"value": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LogFilePath": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsRead": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"RowsSkipped": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"runid": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ValidRows": {
+												"value": "'NA'",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "linkedService1",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "vfileheader_false",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vheader",
+										"value": "'3'"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Wait Column Sequence Check",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "vfileheader",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Wait Column Sequence Check",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vheader",
+										"value": "'1'"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Check File Name",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Get Source File Metadata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Lookup File Defination",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Source File Metadata').output.itemName,activity('Lookup File Defination').output.firstRow.Object_Name)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "ErrorLogProcedure_filename",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "vfilename_false",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SP_ExecutionLogs]",
+										"storedProcedureParameters": {
+											"CreatedOn": {
+												"value": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"DataFactoryName": {
+												"value": {
+													"value": "@pipeline().DataFactory",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMessage": {
+												"value": {
+													"value": "@if(equals(variables('vfilename'),1),'File is valid','File Name does not match with the predefined metadata.')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Filename": {
+												"value": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LogFilePath": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsRead": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"RowsSkipped": {
+												"value": "'NA'",
+												"type": "String"
+											},
+											"runid": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ValidRows": {
+												"value": "'NA'",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "linkedService1",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "vfilename_false",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vfilename",
+										"value": "'4'"
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Check FileName",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "vfilename",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Check FileName",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "vfilename",
+										"value": "'1'"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "If Condition1",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Check File Hearder Count",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Check File Headers",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Check File Name",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@and(equals(variables('vcount'),variables('vfilename')),equals(variables('vfilename'),variables('vheader')))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Wait_False",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "Final_Wait",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								},
+								{
+									"name": "CopydataExceltoJson",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Final_Wait",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "ExcelSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true
+											}
+										},
+										"sink": {
+											"type": "JsonSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "JsonWriteSettings",
+												"quoteAllText": true
+											}
+										},
+										"enableStaging": false,
+										"enableSkipIncompatibleRow": true,
+										"logStorageSettings": {
+											"linkedServiceName": {
+												"referenceName": "AzureBlobStorage1",
+												"type": "LinkedServiceReference"
+											},
+											"path": "adflogs"
+										},
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "OrderDate",
+														"type": "String"
+													},
+													"sink": {
+														"path": "$['OrderDate']"
+													}
+												},
+												{
+													"source": {
+														"name": "Region",
+														"type": "String"
+													},
+													"sink": {
+														"path": "$['Region']"
+													}
+												},
+												{
+													"source": {
+														"name": "Rep",
+														"type": "String"
+													},
+													"sink": {
+														"path": "$['Rep']"
+													}
+												},
+												{
+													"source": {
+														"name": "Item",
+														"type": "String"
+													},
+													"sink": {
+														"path": "$['Item']"
+													}
+												},
+												{
+													"source": {
+														"name": "Units",
+														"type": "Int32"
+													},
+													"sink": {
+														"path": "$['Units']"
+													}
+												},
+												{
+													"source": {
+														"name": "Unit Cost",
+														"type": "Double"
+													},
+													"sink": {
+														"path": "$['Unit Cost']"
+													}
+												},
+												{
+													"source": {
+														"name": "Total",
+														"type": "Double"
+													},
+													"sink": {
+														"path": "$['Total']"
+													}
+												}
+											]
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "SampleInputdata_param",
+											"type": "DatasetReference",
+											"parameters": {
+												"Inputfilename": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Validataoutput",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								},
+								{
+									"name": "CallErrorLogProcedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "CopydataExceltoJson",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[dbo].[SP_ExecutionLogs]",
+										"storedProcedureParameters": {
+											"CreatedOn": {
+												"value": {
+													"value": "@utcnow()",
+													"type": "Expression"
+												},
+												"type": "DateTime"
+											},
+											"DataFactoryName": {
+												"value": {
+													"value": "@pipeline().DataFactory",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ErrorMessage": {
+												"value": {
+													"value": "@if(greaterOrEquals(activity('CopydataExceltoJson').output.rowsSkipped,1),'File has erroneous records' ,'File is valid')",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"Filename": {
+												"value": {
+													"value": "@pipeline().parameters.Inputfile",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"LogFilePath": {
+												"value": {
+													"value": "@activity('CopydataExceltoJson').output.logFilePath",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"PipelineName": {
+												"value": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsRead": {
+												"value": {
+													"value": "@activity('CopydataExceltoJson').output.rowsRead",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"RowsSkipped": {
+												"value": {
+													"value": "@activity('CopydataExceltoJson').output.rowsSkipped",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"runid": {
+												"value": {
+													"value": "@pipeline().RunId",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"ValidRows": {
+												"value": {
+													"value": "@activity('CopydataExceltoJson').output.rowsCopied",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "linkedService1",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"parameters": {
+					"InputFile": {
+						"type": "string",
+						"defaultValue": "SampleData_ColumnSequence.xlsx"
+					}
+				},
+				"variables": {
+					"vheader": {
+						"type": "String"
+					},
+					"vcount": {
+						"type": "String"
+					},
+					"vfilename": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/adbexecptions')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Transformation",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Shared/writeafile",
+							"baseParameters": {
+								"dfname": {
+									"value": "@pipeline().DataFactory",
+									"type": "Expression"
+								},
+								"pplname": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								},
+								"Infilename": {
+									"value": "@pipeline().parameters.Inputfilename",
+									"type": "Expression"
+								},
+								"RunId": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "adbacnpremium",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "Transformationupdates",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Transformation",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "TransformStatus",
+								"type": "DatasetReference",
+								"parameters": {
+									"transoutfilenameds": {
+										"value": "@concat(pipeline().RunId,'.csv')",
+										"type": "Expression"
+									}
+								}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"parameters": {
+					"Inputfilename": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"transoutfilename": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Daily')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "adbexecptions",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"Inputfilename": "[parameters('Daily_properties_adbexecptions_parameters_Inputfilename')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2020-07-01T10:35:00Z",
+						"endTime": "2020-07-31T10:23:00Z",
+						"timeZone": "UTC",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								8
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/adbexecptions')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Weekly')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "FilePreValidationxls",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"InputFile": "[parameters('Weekly_properties_FilePreValidationxls_parameters_InputFile')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Week",
+						"interval": 1,
+						"startTime": "2020-07-02T10:28:00Z",
+						"endTime": "2020-07-30T10:28:00Z",
+						"timeZone": "UTC",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								11
+							],
+							"weekDays": [
+								"Thursday"
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/FilePreValidationxls')]"
+			]
+		}
+	]
+}

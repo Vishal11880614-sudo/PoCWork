@@ -1,0 +1,45 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "acnuldf"
+		},
+		"ADBAutocluster_accessToken": {
+			"value": ""
+		},
+		"AzureBlobStorage1_connectionString": {
+			"value": ""
+		},
+		"AzureBlobStorage2_connectionString": {
+			"value": ""
+		},
+		"AzureDatabricks1_accessToken": {
+			"value": ""
+		},
+		"SQLDBProcedureLinkService_connectionString": {
+			"value": ""
+		},
+		"adbacnpremium_accessToken": {
+			"value": ""
+		},
+		"linkedService1_connectionString": {
+			"value": ""
+		},
+		"myfristresourrcelink_connectionString": {
+			"value": ""
+		},
+		"Daily_properties_adbexecptions_parameters_Inputfilename": {
+			"value": "ProfitOUT.csv"
+		},
+		"Weekly_properties_FilePreValidationxls_parameters_InputFile": {
+			"value": "SampleData_ColumnSequence.xlsx"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
